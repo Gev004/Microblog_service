@@ -1,3 +1,4 @@
+from typing import Type
 from uuid import uuid4
 import uvicorn
 import os
@@ -6,7 +7,16 @@ from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, P
 from sqlalchemy.orm import Session
 from Database.models import User, Tweet, Media, Like, Follow
 from Database.schemas import *
-from Database.database import get_db,create_all,api_key_checking
+from Database.database import get_db,create_all
+
+
+def api_key_checking(db: Session,api_key: str) -> Type[User]:
+    user = db.query(User).filter(User.api_key == api_key).first()
+    if not user:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+    return user
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -105,7 +115,7 @@ def likes(
 
     return {"result": True}
 
-@app.delete("/api/tweets/{tweet_id}/likes",response_model=BaseResultResponse)
+@app.delete("/api/tweets/{tweet_id}/remove_likes",response_model=BaseResultResponse)
 def delete_likes(
     tweet_id = Path(...),
     api_key: str = Header(..., alias="api-key"),

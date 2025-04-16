@@ -1,35 +1,39 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  app:
-    build: .
-    container_name: fastapi_app
+  backend:
+    build:
+      context: .
+    container_name: fastapi_backend
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     depends_on:
       - db
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_frontend
+    ports:
+      - "80:80"
     volumes:
-      - .:/app
-    networks:
-      - app_network
-    command: uvicorn app:app --host 0.0.0.0 --port 8000
-    env_file:
-      - .env
+      - ./Layout:/usr/share/nginx/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
 
   db:
-    image: postgres:13
+    image: postgres:14
     container_name: postgres_db
+    restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
-    networks:
-      - app_network
-    env_file:
-      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-networks:
-  app_network:
-    driver: bridge
+volumes:
+  postgres_data:
