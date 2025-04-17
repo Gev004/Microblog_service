@@ -33,6 +33,7 @@ Create a `.env` file in the root directory with the following content:
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=yourpassword
 POSTGRES_DB=yourdbname
+HOST=IP_ADDRESS_OF_PC_WHERE_DB_LOCATED
 ```
 
 ### 3. Build and start the containers
