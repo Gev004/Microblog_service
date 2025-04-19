@@ -19,7 +19,7 @@ Base = declarative_base()
 
 
 def create_all():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.drop_all(bind=engine)
 
 def get_db():
     db = SessionLocal()

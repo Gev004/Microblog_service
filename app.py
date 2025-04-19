@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from Database.models import User, Tweet, Media, Like, Follow
 from Database.schemas import *
 from Database.database import get_db,create_all
+from Database.test import made_test_user
 
 
 def api_key_checking(db: Session,api_key: str) -> Type[User]:
@@ -21,6 +22,7 @@ def api_key_checking(db: Session,api_key: str) -> Type[User]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
         create_all()
+        made_test_user()
         yield
 
 app = FastAPI(lifespan=lifespan)
@@ -225,7 +227,7 @@ def get_timeline(
     except Exception as e:
         return {"result": False, "error_type": "InternalError", "error_message": str(e)}
 
-@app.get("/api/users/me",response_model=TweetTimelineItem)
+@app.get("/api/users/me", response_model=UserProfileResponse)
 def get_my_profile(
     api_key: str = Header(..., alias="api-key"),
     db: Session = Depends(get_db)
@@ -267,7 +269,8 @@ def get_my_profile(
         }
 
 
-@app.get("/api/users/{user_id}",response_model=TimelineResponse)
+
+@app.get("/api/users/{user_id}", response_model=UserProfileResponse)
 def get_user_profile(
     user_id: int = Path(...),
     db: Session = Depends(get_db),
@@ -313,6 +316,7 @@ def get_user_profile(
             "error_type": "InternalError",
             "error_message": str(e),
         }
+
 
 
 if __name__ == "__main__":

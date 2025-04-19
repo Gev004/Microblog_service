@@ -43,3 +43,17 @@ class TweetTimelineItem(BaseModel):
 class TimelineResponse(BaseModel):
     result: bool
     tweets: List[TweetTimelineItem]
+
+class SimpleUser(BaseModel):
+    id: int
+    name: str
+
+class UserProfile(BaseModel):
+    id: int
+    name: str
+    followers: List[SimpleUser]
+    following: List[SimpleUser]
+
+class UserProfileResponse(BaseModel):
+    result: bool
+    user: UserProfile

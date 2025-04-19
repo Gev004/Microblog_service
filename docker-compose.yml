@@ -1,6 +1,7 @@
 version: '3.9'
 
 services:
+
   backend:
     build: .
     container_name: fastapi_backend
@@ -19,7 +20,7 @@ services:
     ports:
       - '80:80'
     volumes:
-      - ./Layout:/usr/share/nginx/html:ro
+      - ./Layout/dist:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
