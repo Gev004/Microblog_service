@@ -4,8 +4,8 @@ from Database.models import User, Tweet
 
 def made_test_user():
     db: Session = SessionLocal()
-    api_key = "hello"
-    test_user = User(username="test_user", api_key=api_key)
+    api_key = "test"
+    test_user = User(username="gev", api_key=api_key)
 
     db.add(test_user)
     db.commit()

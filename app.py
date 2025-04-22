@@ -189,7 +189,7 @@ def unfollow(
     return {"result": True, "message": f"You have unfollowed {following.username}"}
 
 
-@app.get("/api/tweets", response_model=TweetResponse)
+@app.get("/api/tweets", response_model=TimelineResponse)
 def get_timeline(
         api_key: str = Header(..., alias="api-key"),
         db: Session = Depends(get_db),
