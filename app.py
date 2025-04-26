@@ -199,6 +199,7 @@ def get_timeline(
     try:
         following_ids = db.query(Follow.following_id).filter(Follow.follower_id == user.id).all()
         following_ids = [f.following_id for f in following_ids]
+        following_ids.append(user.id)
 
         tweets = db.query(Tweet).filter(Tweet.user_id.in_(following_ids)).order_by(Tweet.created_at.desc()).all()
 
