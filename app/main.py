@@ -5,10 +5,11 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Path
 from sqlalchemy.orm import Session
+from fastapi.staticfiles import StaticFiles
 from Database.models import User, Tweet, Media, Like, Follow
 from Database.schemas import *
 from Database.database import get_db,create_all
-from Database.test import made_test_user
+from Database.user_for_test import made_test_user
 
 
 def api_key_checking(db: Session,api_key: str) -> Type[User]:
@@ -29,6 +30,9 @@ app = FastAPI(lifespan=lifespan)
 
 FOLDER_NAME = "static"
 os.makedirs(FOLDER_NAME, exist_ok=True)
+
+
+app.mount("/static", StaticFiles(directory=FOLDER_NAME), name="static")
 
 
 
