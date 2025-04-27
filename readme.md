@@ -3,21 +3,31 @@
 ## 📦 Project Structure
 ```
 Microblog_service/
-├── app.py
+│
+├── app/
+│   ├── __init__.py   
+│   ├── main.py       
+│
 ├── Database/
+│   ├── __init__.py
 │   ├── models.py
 │   ├── schemas.py
 │   └── database.py
+│
 ├── tests/
 │   └── test_main.py
-├── Layout/                 # Frontend files
+│
+├── Layout/
+│
 ├── nginx/
-│   └── default.conf        # Nginx config
+│   └── default.conf
+│
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .env
 └── README.md
+
 ```
 
 ## 🚀 Getting Started
@@ -33,7 +43,7 @@ Create a `.env` file in the root directory with the following content:
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=yourpassword
 POSTGRES_DB=yourdbname
-HOST=IP_ADDRESS_OF_PC_WHERE_DB_LOCATED
+HOST=db
 ```
 
 ### 3. Build and start the containers
