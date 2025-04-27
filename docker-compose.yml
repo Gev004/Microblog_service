@@ -21,7 +21,7 @@ services:
     env_file:
       - .env
     environment:
-      - PYTHONPATH=/app    # 👈 ADD THIS LINE!
+      - PYTHONPATH=/app
     volumes:
       - ./Microblog_service/static:/app/static
     depends_on:
