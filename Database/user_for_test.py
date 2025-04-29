@@ -1,11 +1,24 @@
 from sqlalchemy.orm import Session
 from Database.database import SessionLocal
 from Database.models import User, Tweet
+from passlib.context import CryptContext
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_key(api_key: str) -> str:
+    return pwd_context.hash(api_key)
+
+def verify_key(plain_key: str, hashed_key: str) -> bool:
+    return pwd_context.verify(plain_key, hashed_key)
+
 
 def made_test_user():
     db: Session = SessionLocal()
-    api_key = "test"
-    test_user = User(username="gev", api_key=api_key)
+    raw_api_key = "test"
+    hashed_api_key = hash_key(raw_api_key)
+
+    test_user = User(username="gev", api_key=hashed_api_key)
 
     db.add(test_user)
     db.commit()
@@ -17,4 +30,4 @@ def made_test_user():
     db.add_all([tweet1, tweet2])
     db.commit()
 
-    print(f"Test user created: username={test_user.username}, api_key={test_user.api_key}")
+    print(f"Test user created: username={test_user.username}, api_key=HIDDEN")

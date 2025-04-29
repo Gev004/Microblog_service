@@ -10,3 +10,4 @@ pytest-mock
 flake8
 psycopg2-binary
 httpx
+passlib
