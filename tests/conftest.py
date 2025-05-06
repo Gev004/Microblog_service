@@ -1,12 +1,16 @@
+import os
+import sys
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
+from uuid import uuid4
 from Database.database import Base, get_db
 from Database.models import User
-from uuid import uuid4
 from app import app
+from Database.user_for_test import hash_key
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 SQLALCHEMY_TEST_URL = "sqlite:///./test.db"
 engine = create_engine(SQLALCHEMY_TEST_URL, connect_args={"check_same_thread": False})
@@ -33,8 +37,13 @@ def client(db):
 
 @pytest.fixture(scope="function")
 def test_user(db):
-    user = User(username=f"user_{uuid4().hex}", api_key=uuid4().hex)
+    raw_api_key = uuid4().hex
+    hashed_api_key = hash_key(raw_api_key)
+
+    user = User(username=f"user_{uuid4().hex}", api_key=hashed_api_key)
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    user.raw_api_key = raw_api_key
     return user

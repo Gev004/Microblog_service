@@ -169,12 +169,56 @@ def unfollow(
     return {"result": True, "message": f"You have unfollowed {following.username}"}
 
 
+# @router.get("/api/tweets", response_model=TimelineResponse)
+# def get_timeline(
+#         api_key: str = Header(..., alias="api-key"),
+#         db: Session = Depends(get_db),
+#         limit: int = 10,
+#         offset: int = 0,
+# ):
+#     user = api_key_checking(db, api_key)
+#
+#     try:
+#         following_ids = db.query(Follow.following_id).filter(Follow.follower_id == user.id).all()
+#         following_ids = [f.following_id for f in following_ids]
+#         following_ids.append(user.id)
+#
+#         query = db.query(Tweet).filter(Tweet.user_id.in_(following_ids)).order_by(Tweet.created_at.desc())
+#
+#         total_count = query.count()
+#         tweets = query.offset(offset).limit(limit).all()
+#
+#         result_tweets = []
+#         for tweet in tweets:
+#             media_links = db.query(Media).filter(Media.tweet_id == tweet.id).all()
+#             media_links = [media.file_path for media in media_links]
+#
+#             likes = db.query(Like).filter(Like.tweet_id == tweet.id).all()
+#             like_users = [
+#                 {"user_id": like.user_id, "name": db.query(User).filter(User.id == like.user_id).first().username}
+#                 for like in likes
+#             ]
+#
+#             result_tweets.append({
+#                 "id": tweet.id,
+#                 "content": tweet.content,
+#                 "attachments": media_links,
+#                 "author": {"id": tweet.user_id,
+#                            "name": db.query(User).filter(User.id == tweet.user_id).first().username},
+#                 "likes": like_users
+#             })
+#
+#         return {"result": True, "tweets": result_tweets, "total": total_count, "limit": limit, "offset": offset}
+#
+#     except Exception as e:
+#         return {"result": False, "error_type": "InternalError", "error_message": str(e)}
+
 @router.get("/api/tweets", response_model=TimelineResponse)
 def get_timeline(
-        api_key: str = Header(..., alias="api-key"),
-        db: Session = Depends(get_db),
-        limit: int = 10,
-        offset: int = 0,
+    api_key: str = Header(..., alias="api-key"),
+    db: Session = Depends(get_db),
+    limit: int = 10,
+    offset: int = 0,
 ):
     user = api_key_checking(db, api_key)
 
@@ -184,31 +228,43 @@ def get_timeline(
         following_ids.append(user.id)
 
         query = db.query(Tweet).filter(Tweet.user_id.in_(following_ids)).order_by(Tweet.created_at.desc())
-
         total_count = query.count()
         tweets = query.offset(offset).limit(limit).all()
 
         result_tweets = []
+
         for tweet in tweets:
             media_links = db.query(Media).filter(Media.tweet_id == tweet.id).all()
             media_links = [media.file_path for media in media_links]
 
             likes = db.query(Like).filter(Like.tweet_id == tweet.id).all()
-            like_users = [
-                {"user_id": like.user_id, "name": db.query(User).filter(User.id == like.user_id).first().username}
-                for like in likes
-            ]
+            like_users = []
+            for like in likes:
+                user_obj = db.query(User).filter(User.id == like.user_id).first()
+                like_users.append({"user_id": like.user_id, "name": user_obj.username if user_obj else "Unknown"})
+
+            author_obj = db.query(User).filter(User.id == tweet.user_id).first()
+            author_name = author_obj.username if author_obj else "Unknown"
 
             result_tweets.append({
                 "id": tweet.id,
                 "content": tweet.content,
                 "attachments": media_links,
-                "author": {"id": tweet.user_id,
-                           "name": db.query(User).filter(User.id == tweet.user_id).first().username},
+                "author": {"id": tweet.user_id, "name": author_name},
                 "likes": like_users
             })
 
-        return {"result": True, "tweets": result_tweets, "total": total_count, "limit": limit, "offset": offset}
+        return {
+            "result": True,
+            "tweets": result_tweets,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset
+        }
 
     except Exception as e:
-        return {"result": False, "error_type": "InternalError", "error_message": str(e)}
+        return {
+            "result": False,
+            "error_type": "InternalError",
+            "error_message": str(e)
+        }
