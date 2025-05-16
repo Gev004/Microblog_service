@@ -232,22 +232,25 @@ def get_timeline(
         following_ids = [f.following_id for f in following_ids]
         following_ids.append(user.id)
 
-        base_query = db.query(Tweet).filter(Tweet.user_id.in_(following_ids))
-        tweets = base_query.order_by(Tweet.created_at.desc(), Tweet.id.desc()) \
-                           .offset(offset).limit(limit).all()
+        all_tweets = (
+            db.query(Tweet)
+            .filter(Tweet.user_id.in_(following_ids))
+            .order_by(Tweet.created_at.desc(), Tweet.id.desc())
+            .all()
+        )
+
+        normalized_offset = (offset // limit) * limit
+        paginated_tweets = all_tweets[normalized_offset:normalized_offset + limit]
 
         result_tweets = []
-        for tweet in tweets:
-            media_links = [media.file_path for media in db.query(Media).filter_by(tweet_id=tweet.id).all()]
-            like_users = [
-                {
-                    "user_id": like.user_id,
-                    "name": db.query(User).filter_by(id=like.user_id).first().username or "Unknown"
-                }
-                for like in db.query(Like).filter_by(tweet_id=tweet.id).all()
-            ]
-            author_obj = db.query(User).filter_by(id=tweet.user_id).first()
-            author_name = author_obj.username if author_obj else "Unknown"
+        for tweet in paginated_tweets:
+            media_links = [m.file_path for m in db.query(Media).filter_by(tweet_id=tweet.id).all()]
+            like_users = [{
+                "user_id": like.user_id,
+                "name": db.query(User).filter_by(id=like.user_id).first().username or "Unknown"
+            } for like in db.query(Like).filter_by(tweet_id=tweet.id).all()]
+            author = db.query(User).filter_by(id=tweet.user_id).first()
+            author_name = author.username if author else "Unknown"
 
             result_tweets.append({
                 "id": tweet.id,
@@ -257,11 +260,17 @@ def get_timeline(
                 "likes": like_users
             })
 
+        has_next = normalized_offset + limit < len(all_tweets)
+        next_cursor = {
+            "offset": normalized_offset + limit,
+            "limit": limit
+        } if has_next else None
+
         return {
             "result": True,
             "tweets": result_tweets,
             "limit": limit,
-            "next_cursor": None
+            "next_cursor": next_cursor
         }
 
     except Exception as e:
