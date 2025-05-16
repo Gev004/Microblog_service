@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, Path
+from typing import Optional
+from datetime import datetime
+from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, Path ,Query
 from sqlalchemy.orm import Session
 from Database.models import Tweet, Media, Like, User, Follow
 from Database.schemas import TweetResponse, MediaResponse, BaseResultResponse, TimelineResponse, TweetCreate, \
@@ -213,12 +215,15 @@ def unfollow(
 #     except Exception as e:
 #         return {"result": False, "error_type": "InternalError", "error_message": str(e)}
 
+
+
+
 @router.get("/api/tweets", response_model=TimelineResponse)
 def get_timeline(
     api_key: str = Header(..., alias="api-key"),
     db: Session = Depends(get_db),
-    limit: int = 10,
-    offset: int = 0,
+    limit: int = Query(10),
+    offset: int = Query(0),
 ):
     user = api_key_checking(db, api_key)
 
@@ -227,23 +232,21 @@ def get_timeline(
         following_ids = [f.following_id for f in following_ids]
         following_ids.append(user.id)
 
-        query = db.query(Tweet).filter(Tweet.user_id.in_(following_ids)).order_by(Tweet.created_at.desc())
-        total_count = query.count()
-        tweets = query.offset(offset).limit(limit).all()
+        base_query = db.query(Tweet).filter(Tweet.user_id.in_(following_ids))
+        tweets = base_query.order_by(Tweet.created_at.desc(), Tweet.id.desc()) \
+                           .offset(offset).limit(limit).all()
 
         result_tweets = []
-
         for tweet in tweets:
-            media_links = db.query(Media).filter(Media.tweet_id == tweet.id).all()
-            media_links = [media.file_path for media in media_links]
-
-            likes = db.query(Like).filter(Like.tweet_id == tweet.id).all()
-            like_users = []
-            for like in likes:
-                user_obj = db.query(User).filter(User.id == like.user_id).first()
-                like_users.append({"user_id": like.user_id, "name": user_obj.username if user_obj else "Unknown"})
-
-            author_obj = db.query(User).filter(User.id == tweet.user_id).first()
+            media_links = [media.file_path for media in db.query(Media).filter_by(tweet_id=tweet.id).all()]
+            like_users = [
+                {
+                    "user_id": like.user_id,
+                    "name": db.query(User).filter_by(id=like.user_id).first().username or "Unknown"
+                }
+                for like in db.query(Like).filter_by(tweet_id=tweet.id).all()
+            ]
+            author_obj = db.query(User).filter_by(id=tweet.user_id).first()
             author_name = author_obj.username if author_obj else "Unknown"
 
             result_tweets.append({
@@ -257,9 +260,8 @@ def get_timeline(
         return {
             "result": True,
             "tweets": result_tweets,
-            "total": total_count,
             "limit": limit,
-            "offset": offset
+            "next_cursor": None
         }
 
     except Exception as e:
@@ -268,3 +270,8 @@ def get_timeline(
             "error_type": "InternalError",
             "error_message": str(e)
         }
+
+
+
+
+
