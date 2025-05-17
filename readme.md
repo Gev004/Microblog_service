@@ -1,29 +1,82 @@
-# Microblog Service 🐦
-
-A lightweight Twitter-like microblogging API built with FastAPI.  
-This service allows users to post tweets, upload media, follow/unfollow users, like/unlike tweets, and manage their profiles.
-
----
-
-## 🚀 Features
-
-- Create and delete tweets
-- Upload and attach media to tweets
-- Like and unlike tweets
-- Follow and unfollow users
-- View personal and public user profiles
-- Get a timeline of followed users' tweets
-
----
+# Microblogging FastAPI Project
 
 ## 📦 Project Structure
-
+```
 Microblog_service/
-├── Database/              # SQLAlchemy models and DB setup
-├── app.py                 # Main FastAPI application
-├── requirements.txt       # Project dependencies
-├── Dockerfile             # Docker image config
-├── docker-compose.yml     # Services: FastAPI + Postgres
-├── .env                   # Environment variables
-├── tests/                 # Unit tests with pytest
-└── README.md              # Project documentation
+│
+├── app/
+│   ├── __init__.py   
+│   ├── main.py       
+│
+├── Database/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── schemas.py
+│   └── database.py
+│
+├── tests/
+│   └── test_main.py
+│
+├── Layout/
+│
+├── nginx/
+│   └── default.conf
+│
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── .env
+└── README.md
+
+```
+
+## 🚀 Getting Started
+### 1. Clone the repository
+```bash
+git clone https://github.com/gevorg_sargsyan/microblog-service.git
+cd microblog-service
+```
+
+### 2. Create `.env` file
+Create a `.env` file in the root directory with the following content:
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=yourpassword
+POSTGRES_DB=yourdbname
+HOST=db
+```
+
+### 3. Build and start the containers
+```bash
+docker-compose up --build
+```
+
+- Backend: http://localhost:8000
+- Frontend: http://localhost
+- Swagger UI: http://localhost:8000/docs
+
+### 4. Run Migrations (if using Alembic)
+```bash
+docker exec -it fastapi_backend alembic upgrade head
+```
+
+## 🧪 Run Tests
+```bash
+docker exec -it fastapi_backend pytest
+```
+
+## 📂 API Overview
+- `POST /api/tweets` — Create a tweet
+- `DELETE /api/tweets/{id}` — Delete tweet
+- `POST /api/medias` — Upload media file
+- `POST /api/tweets/{id}/likes` — Like tweet
+- `DELETE /api/tweets/{id}/likes` — Remove like
+- `POST /api/tweets/{user_id}/follow` — Follow user
+- `DELETE /api/tweets/{user_id}/unfollow` — Unfollow user
+- `GET /api/tweets` — Get timeline
+- `GET /api/users/me` — View own profile
+- `GET /api/users/{user_id}` — View other profile
+
+All API requests require `api-key` header.
+
+

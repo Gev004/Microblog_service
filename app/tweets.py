@@ -1,27 +1,21 @@
-from uuid import uuid4
-import uvicorn
-import os
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Path
+from typing import Optional
+from datetime import datetime
+from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, Path ,Query
 from sqlalchemy.orm import Session
-from Database.models import User, Tweet, Media, Like, Follow
-from Database.schemas import *
-from Database.database import get_db,create_all,api_key_checking
+from Database.models import Tweet, Media, Like, User, Follow
+from Database.schemas import TweetResponse, MediaResponse, BaseResultResponse, TimelineResponse, TweetCreate, \
+    FollowResponse, UnfollowResponse
+from Database.database import get_db
+from uuid import uuid4
+import os
+from .utils import api_key_checking
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-        create_all()
-        yield
-
-app = FastAPI(lifespan=lifespan)
+router = APIRouter()
 
 FOLDER_NAME = "static"
 os.makedirs(FOLDER_NAME, exist_ok=True)
 
-
-
-
-@app.post("/api/tweets",response_model=TweetResponse)
+@router.post("/api/tweets",response_model=TweetResponse)
 def create_tweet(
     tweet: TweetCreate,
     db: Session = Depends(get_db),
@@ -45,7 +39,7 @@ def create_tweet(
 
     return TweetResponse(result=True, tweet_id=new_tweet.id)
 
-@app.post("/api/medias",response_model=MediaResponse)
+@router.post("/api/medias",response_model=MediaResponse)
 def create_media(
     api_key: str = Header(..., alias="api-key"),
     file: UploadFile = File(...),
@@ -66,7 +60,7 @@ def create_media(
 
     return {"result": True, "media_id": media.id}
 
-@app.delete("/api/tweets/{tweet_id}",response_model=BaseResultResponse)
+@router.delete("/api/tweets/{tweet_id}",response_model=BaseResultResponse)
 def delete_tweets(
     api_key: str = Header(..., alias="api-key"),
     db: Session = Depends(get_db),
@@ -83,7 +77,7 @@ def delete_tweets(
     return {"result": True}
 
 
-@app.post("/api/tweets/{tweet_id}/likes",response_model=BaseResultResponse)
+@router.post("/api/tweets/{tweet_id}/likes",response_model=BaseResultResponse)
 def likes(
     tweet_id = Path(...),
     api_key: str = Header(..., alias="api-key"),
@@ -105,7 +99,7 @@ def likes(
 
     return {"result": True}
 
-@app.delete("/api/tweets/{tweet_id}/likes",response_model=BaseResultResponse)
+@router.delete("/api/tweets/{tweet_id}/likes",response_model=BaseResultResponse)
 def delete_likes(
     tweet_id = Path(...),
     api_key: str = Header(..., alias="api-key"),
@@ -126,7 +120,7 @@ def delete_likes(
 
     return {"result": True}
 
-@app.post("/api/tweets/{user_id}/follow",response_model=FollowResponse)
+@router.post("/api/tweets/{user_id}/follow",response_model=FollowResponse)
 def follow(
     user_id: int = Path(...),
     api_key: str = Header(..., alias="api-key"),
@@ -151,7 +145,7 @@ def follow(
 
     return {"result": True, "message": f"You are now following {following.username}"}
 
-@app.delete("/api/tweets/{user_id}/unfollow",response_model=UnfollowResponse)
+@router.delete("/api/tweets/{user_id}/unfollow",response_model=UnfollowResponse)
 def unfollow(
     user_id: int = Path(...),
     api_key: str = Header(..., alias="api-key"),
@@ -177,133 +171,116 @@ def unfollow(
     return {"result": True, "message": f"You have unfollowed {following.username}"}
 
 
-@app.get("/api/tweets", response_model=TweetResponse)
+# @router.get("/api/tweets", response_model=TimelineResponse)
+# def get_timeline(
+#         api_key: str = Header(..., alias="api-key"),
+#         db: Session = Depends(get_db),
+#         limit: int = 10,
+#         offset: int = 0,
+# ):
+#     user = api_key_checking(db, api_key)
+#
+#     try:
+#         following_ids = db.query(Follow.following_id).filter(Follow.follower_id == user.id).all()
+#         following_ids = [f.following_id for f in following_ids]
+#         following_ids.append(user.id)
+#
+#         query = db.query(Tweet).filter(Tweet.user_id.in_(following_ids)).order_by(Tweet.created_at.desc())
+#
+#         total_count = query.count()
+#         tweets = query.offset(offset).limit(limit).all()
+#
+#         result_tweets = []
+#         for tweet in tweets:
+#             media_links = db.query(Media).filter(Media.tweet_id == tweet.id).all()
+#             media_links = [media.file_path for media in media_links]
+#
+#             likes = db.query(Like).filter(Like.tweet_id == tweet.id).all()
+#             like_users = [
+#                 {"user_id": like.user_id, "name": db.query(User).filter(User.id == like.user_id).first().username}
+#                 for like in likes
+#             ]
+#
+#             result_tweets.append({
+#                 "id": tweet.id,
+#                 "content": tweet.content,
+#                 "attachments": media_links,
+#                 "author": {"id": tweet.user_id,
+#                            "name": db.query(User).filter(User.id == tweet.user_id).first().username},
+#                 "likes": like_users
+#             })
+#
+#         return {"result": True, "tweets": result_tweets, "total": total_count, "limit": limit, "offset": offset}
+#
+#     except Exception as e:
+#         return {"result": False, "error_type": "InternalError", "error_message": str(e)}
+
+
+
+
+@router.get("/api/tweets", response_model=TimelineResponse)
 def get_timeline(
-        api_key: str = Header(..., alias="api-key"),
-        db: Session = Depends(get_db),
+    api_key: str = Header(..., alias="api-key"),
+    db: Session = Depends(get_db),
+    limit: int = Query(10),
+    offset: int = Query(0),
 ):
     user = api_key_checking(db, api_key)
 
     try:
         following_ids = db.query(Follow.following_id).filter(Follow.follower_id == user.id).all()
         following_ids = [f.following_id for f in following_ids]
+        following_ids.append(user.id)
 
-        tweets = db.query(Tweet).filter(Tweet.user_id.in_(following_ids)).order_by(Tweet.created_at.desc()).all()
+        all_tweets = (
+            db.query(Tweet)
+            .filter(Tweet.user_id.in_(following_ids))
+            .order_by(Tweet.created_at.desc(), Tweet.id.desc())
+            .all()
+        )
+
+        normalized_offset = (offset // limit) * limit
+        paginated_tweets = all_tweets[normalized_offset:normalized_offset + limit]
 
         result_tweets = []
-        for tweet in tweets:
-            media_links = db.query(Media).filter(Media.tweet_id == tweet.id).all()
-            media_links = [media.file_path for media in media_links]
-
-            likes = db.query(Like).filter(Like.tweet_id == tweet.id).all()
-            like_users = [
-                {"user_id": like.user_id, "name": db.query(User).filter(User.id == like.user_id).first().username}
-                for like in likes
-            ]
+        for tweet in paginated_tweets:
+            media_links = [m.file_path for m in db.query(Media).filter_by(tweet_id=tweet.id).all()]
+            like_users = [{
+                "user_id": like.user_id,
+                "name": db.query(User).filter_by(id=like.user_id).first().username or "Unknown"
+            } for like in db.query(Like).filter_by(tweet_id=tweet.id).all()]
+            author = db.query(User).filter_by(id=tweet.user_id).first()
+            author_name = author.username if author else "Unknown"
 
             result_tweets.append({
                 "id": tweet.id,
                 "content": tweet.content,
                 "attachments": media_links,
-                "author": {"id": tweet.user_id,
-                           "name": db.query(User).filter(User.id == tweet.user_id).first().username},
+                "author": {"id": tweet.user_id, "name": author_name},
                 "likes": like_users
             })
 
-        return {"result": True, "tweets": result_tweets}
-
-    except Exception as e:
-        return {"result": False, "error_type": "InternalError", "error_message": str(e)}
-
-@app.get("/api/users/me",response_model=TweetTimelineItem)
-def get_my_profile(
-    api_key: str = Header(..., alias="api-key"),
-    db: Session = Depends(get_db)
-):
-    user = api_key_checking(db, api_key)
-
-    try:
-        followers = (
-            db.query(User)
-            .join(Follow, Follow.follower_id == User.id)
-            .filter(Follow.following_id == user.id)
-            .all()
-        )
-        followers_list = [{"id": follower.id, "name": follower.username} for follower in followers]
-
-        following = (
-            db.query(User)
-            .join(Follow, Follow.following_id == User.id)
-            .filter(Follow.follower_id == user.id)
-            .all()
-        )
-        following_list = [{"id": follow.id, "name": follow.username} for follow in following]
+        has_next = normalized_offset + limit < len(all_tweets)
+        next_cursor = {
+            "offset": normalized_offset + limit,
+            "limit": limit
+        } if has_next else None
 
         return {
             "result": True,
-            "user": {
-                "id": user.id,
-                "name": user.username,
-                "followers": followers_list,
-                "following": following_list,
-            },
+            "tweets": result_tweets,
+            "limit": limit,
+            "next_cursor": next_cursor
         }
 
     except Exception as e:
         return {
             "result": False,
             "error_type": "InternalError",
-            "error_message": str(e),
+            "error_message": str(e)
         }
 
 
-@app.get("/api/users/{user_id}",response_model=TimelineResponse)
-def get_user_profile(
-    user_id: int = Path(...),
-    db: Session = Depends(get_db),
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return {
-            "result": False,
-            "error_type": "UserNotFound",
-            "error_message": f"User with id {user_id} not found",
-        }
-
-    try:
-        followers = (
-            db.query(User)
-            .join(Follow, Follow.follower_id == User.id)
-            .filter(Follow.following_id == user.id)
-            .all()
-        )
-        followers_list = [{"id": follower.id, "name": follower.username} for follower in followers]
-
-        following = (
-            db.query(User)
-            .join(Follow, Follow.following_id == User.id)
-            .filter(Follow.follower_id == user.id)
-            .all()
-        )
-        following_list = [{"id": follow.id, "name": follow.username} for follow in following]
-
-        return {
-            "result": True,
-            "user": {
-                "id": user.id,
-                "name": user.username,
-                "followers": followers_list,
-                "following": following_list,
-            },
-        }
-
-    except Exception as e:
-        return {
-            "result": False,
-            "error_type": "InternalError",
-            "error_message": str(e),
-        }
 
 
-if __name__ == "__main__":
-    uvicorn.run(app)
+
