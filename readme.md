@@ -6,18 +6,28 @@ Microblog_service/
 │
 ├── app/
 │   ├── __init__.py   
-│   ├── main.py       
+│   ├── main.py 
+│   ├── tweets.py
+│   ├── users.py
+│   ├── utils.py      
 │
 ├── Database/
 │   ├── __init__.py
 │   ├── models.py
 │   ├── schemas.py
-│   └── database.py
+│   ├── database.py
+│   ├── user_for_test.py
 │
 ├── tests/
-│   └── test_main.py
+│   ├── conftest.py
+│   ├── test_endpoints.py
 │
 ├── Layout/
+│   ├── dist/
+│       ├──css/
+│       ├──js/
+│       ├──favicon.ico
+│       ├──index.html   
 │
 ├── nginx/
 │   └── default.conf
